@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>암점 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #000000;
+    --tool-bg: #d8d8d8;
+    --tool-btn: #f2f2f2;
+    --mark: #0033cc;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    display: grid;
+    grid-template-columns: 1fr var(--panel-w);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Nanum Gothic", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-size: 14px;
+  }
+
+  #stage {
+    position: relative;
+    overflow: hidden;
+    padding: 28px 36px;
+    border-right: 1px solid var(--ink);
+  }
+
+  #text {
+    font-family: "Nanum Myeongjo", "Batang", serif;
+    font-size: clamp(20px, 1.9vw, 28px);
+    line-height: 1.75;
+    word-break: keep-all;
+    margin: 0;
+  }
+
+  #text .ln { position: absolute; margin: 0; white-space: nowrap; }
+  #text .ln.title { font-size: 1.15em; font-weight: 700; }
+
+  .warn {
+    margin: 0 0 14px;
+    padding: 8px 10px;
+    line-height: 1.5;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+  }
+
+  #holes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .ring {
+    position: absolute;
+    border: 1px dashed var(--mark);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hole {
+    position: absolute;
+    border: 0;
+    border-radius: 50%;
+    background: var(--ink);
+    pointer-events: auto;
+    cursor: move;
+    touch-action: none;
+  }
+
+  #panel {
+    background: var(--tool-bg);
+    padding: 16px;
+    overflow-y: auto;
+  }
+  fieldset {
+    margin: 0 0 18px;
+    padding: 0;
+    border: 0;
+  }
+  legend { padding: 0 0 8px; font-weight: 700; }
+
+  button {
+    display: block;
+    width: 100%;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    font: inherit;
+    text-align: left;
+    color: var(--ink);
+    background: var(--tool-btn);
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    cursor: pointer;
+  }
+  button:disabled { color: #777; border-color: #777; cursor: default; }
+
+  label { display: block; margin: 10px 0 2px; }
+  input[type="range"] { width: 100%; margin: 0; }
+  .value { float: right; }
+  .count { margin: 4px 0 0; }
+  .note { margin: 0; font-size: 12px; line-height: 1.5; color: #333; }
+
+  @media (max-width: 820px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; }
+    #stage { min-height: 75vh; border-right: 0; border-bottom: 1px solid var(--ink); }
+  }
+</style>
+</head>
+<body>
+
+<main id="stage">
+  <article id="text">
+    <h2>대한민국헌법</h2>
+    <p>유구한 역사와 전통에 빛나는 우리 대한국민은 3·1운동으로 건립된 대한민국임시정부의 법통과 불의에 항거한 4·19민주이념을 계승하고, 조국의 민주개혁과 평화적 통일의 사명에 입각하여 정의·인도와 동포애로써 민족의 단결을 공고히 하고, 모든 사회적 폐습과 불의를 타파하며, 자율과 조화를 바탕으로 자유민주적 기본질서를 더욱 확고히 하여 정치·경제·사회·문화의 모든 영역에 있어서 각인의 기회를 균등히 하고, 능력을 최고도로 발휘하게 하며, 자유와 권리에 따르는 책임과 의무를 완수하게 하여, 안으로는 국민생활의 균등한 향상을 기하고 밖으로는 항구적인 세계평화와 인류공영에 이바지함으로써 우리들과 우리들의 자손의 안전과 자유와 행복을 영원히 확보할 것을 다짐하면서 1948년 7월 12일에 제정되고 8차에 걸쳐 개정된 헌법을 이제 국민투표에 의하여 개정한다.</p>
+    <p>제1조 ① 대한민국은 민주공화국이다. ② 대한민국의 주권은 국민에게 있고, 모든 권력은 국민으로부터 나온다.</p>
+    <p>제2조 ① 대한민국의 국민이 되는 요건은 법률로 정한다. ② 국가는 법률이 정하는 바에 의하여 재외국민을 보호할 의무를 진다.</p>
+    <p>제3조 대한민국의 영토는 한반도와 그 부속도서로 한다.</p>
+    <p>제4조 대한민국은 통일을 지향하며, 자유민주적 기본질서에 입각한 평화적 통일 정책을 수립하고 이를 추진한다.</p>
+    <p>제10조 모든 국민은 인간으로서의 존엄과 가치를 가지며, 행복을 추구할 권리를 가진다. 국가는 개인이 가지는 불가침의 기본적 인권을 확인하고 이를 보장할 의무를 진다.</p>
+  </article>
+  <div id="holes" aria-hidden="true"></div>
+</main>
+
+<aside id="panel">
+  <fieldset>
+    <legend>암점</legend>
+    <button type="button" id="add-hole">암점 추가</button>
+    <button type="button" id="clear-holes">모두 지우기</button>
+    <p class="count" id="count">현재 0개</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>크기와 간격</legend>
+    <label for="radius">암점 반지름 <span class="value" id="radius-val">60px</span></label>
+    <input type="range" id="radius" min="20" max="200" value="60">
+    <label for="gap">주변 여백 <span class="value" id="gap-val">20px</span></label>
+    <input type="range" id="gap" min="0" max="80" value="20">
+  </fieldset>
+
+  <p class="warn" id="warn" hidden></p>
+
+  <p class="note">암점을 끌면 위치가 바뀌고, 두 번 누르면 지워집니다. 크기와 여백은 모든 암점에 똑같이 적용됩니다. 글자는 암점과 여백을 피해 자동으로 다시 배치됩니다.</p>
+</aside>
+
+<script>
+(function () {
+  var layer = document.getElementById('holes');
+  var countEl = document.getElementById('count');
+  var radiusIn = document.getElementById('radius');
+  var gapIn = document.getElementById('gap');
+
+  var holes = [];
+  var radius = +radiusIn.value;
+  var gap = +gapIn.value;
+
+  var textEl = document.getElementById('text');
+  var warnEl = document.getElementById('warn');
+  var ctx = document.createElement('canvas').getContext('2d');
+  var widthCache = {};
+
+  var doc = Array.prototype.map.call(textEl.children, function (el) {
+    return { title: el.tagName === 'H2', words: el.textContent.trim().split(/\s+/) };
+  });
+  textEl.textContent = '';
+  var totalWords = doc.reduce(function (n, b) { return n + b.words.length; }, 0);
+
+  function measure(str, font) {
+    var key = font + '|' + str;
+    if (widthCache[key] === undefined) {
+      ctx.font = font;
+      widthCache[key] = ctx.measureText(str).width;
+    }
+    return widthCache[key];
+  }
+
+  function freeSegments(hs, top, bottom, left, right) {
+    var R = radius + gap;
+    var blocked = [];
+    hs.forEach(function (h) {
+      if (top >= h.y + R || bottom <= h.y - R) return;
+      var dy = (h.y >= top && h.y <= bottom) ? 0 : Math.min(Math.abs(top - h.y), Math.abs(bottom - h.y));
+      var half = Math.sqrt(Math.max(R * R - dy * dy, 0));
+      blocked.push([h.x - half, h.x + half]);
+    });
+    blocked.sort(function (a, b) { return a[0] - b[0]; });
+
+    var segs = [], x = left;
+    blocked.forEach(function (b) {
+      if (b[0] > x) segs.push([x, Math.min(b[0], right)]);
+      x = Math.max(x, b[1]);
+    });
+    if (x < right) segs.push([x, right]);
+    return segs;
+  }
+
+  function flow(size, family, useHoles, box) {
+    var hs = useHoles ? holes : [];
+    var lineH = size * 1.75;
+    var y = box.top;
+    var pieces = [];
+    var placed = 0;
+
+    doc.forEach(function (block) {
+      var font = (block.title ? 'bold ' : '') + (block.title ? size * 1.15 : size) + 'px ' + family;
+      var space = measure(' ', font);
+      var i = 0;
+
+      while (i < block.words.length && y + lineH <= box.bottom) {
+        freeSegments(hs, y, y + lineH, box.left, box.right).forEach(function (s) {
+          var line = [], used = 0;
+          while (i < block.words.length) {
+            var need = measure(block.words[i], font) + (line.length ? space : 0);
+            if (used + need > s[1] - s[0]) break;
+            line.push(block.words[i]);
+            used += need;
+            i++;
+          }
+          if (!line.length) return;
+          pieces.push({ x: s[0], y: y, text: line.join(' '), title: block.title });
+          placed += line.length;
+        });
+        y += lineH;
+      }
+      y += size * (block.title ? 0.6 : 0.7);
+    });
+    return { pieces: pieces, placed: placed, lineH: lineH };
+  }
+
+  var fit = { key: '', size: 14, baseHidden: 0 };
+
+  function layoutText() {
+    var family = getComputedStyle(textEl).fontFamily;
+    var sc = getComputedStyle(layer.parentNode);
+    var box = {
+      left: parseFloat(sc.paddingLeft),
+      right: layer.clientWidth - parseFloat(sc.paddingRight),
+      top: parseFloat(sc.paddingTop),
+      bottom: layer.clientHeight - parseFloat(sc.paddingBottom)
+    };
+
+    var key = layer.clientWidth + 'x' + layer.clientHeight;
+    if (fit.key !== key) {
+      var limit = { left: box.left, right: box.right, top: box.top,
+                    bottom: box.top + (box.bottom - box.top) * 0.85 };
+      var lo = 12, hi = 40;
+      for (var k = 0; k < 8; k++) {
+        var mid = (lo + hi) / 2;
+        if (flow(mid, family, false, limit).placed === totalWords) lo = mid; else hi = mid;
+      }
+      fit.key = key;
+      fit.size = lo;
+      fit.baseHidden = totalWords - flow(lo, family, false, box).placed;
+    }
+
+    textEl.style.fontSize = fit.size + 'px';
+    var r = flow(fit.size, family, true, box);
+
+    var frag = document.createDocumentFragment();
+    r.pieces.forEach(function (p) {
+      var el = document.createElement('div');
+      el.className = p.title ? 'ln title' : 'ln';
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+      el.style.lineHeight = r.lineH + 'px';
+      el.textContent = p.text;
+      frag.appendChild(el);
+    });
+    textEl.textContent = '';
+    textEl.appendChild(frag);
+
+    var extra = (totalWords - r.placed) - fit.baseHidden;
+    warnEl.hidden = extra <= 0;
+    warnEl.textContent = '암점 때문에 글자가 화면 아래로 밀려 잘렸습니다. 잘린 단어: ' + extra + '개';
+  }
+
+  var queued = false;
+  function relayout() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function () { queued = false; layoutText(); });
+  }
+
+  function place(h) {
+    var R = radius + gap;
+    h.ring.style.left = (h.x - R) + 'px';
+    h.ring.style.top = (h.y - R) + 'px';
+    h.ring.style.width = (2 * R) + 'px';
+    h.ring.style.height = (2 * R) + 'px';
+    h.disk.style.inset = gap + 'px';
+    relayout();
+  }
+
+  function clamp(h) {
+    h.x = Math.min(Math.max(h.x, 0), layer.clientWidth);
+    h.y = Math.min(Math.max(h.y, 0), layer.clientHeight);
+  }
+
+  function updateCount() {
+    countEl.textContent = '현재 ' + holes.length + '개';
+    relayout();
+  }
+
+  function removeHole(h) {
+    h.ring.remove();
+    holes.splice(holes.indexOf(h), 1);
+    updateCount();
+  }
+
+  function makeDraggable(h) {
+    var dx = 0, dy = 0, dragging = false;
+
+    h.disk.addEventListener('pointerdown', function (e) {
+      var r = layer.getBoundingClientRect();
+      dx = e.clientX - r.left - h.x;
+      dy = e.clientY - r.top - h.y;
+      dragging = true;
+      h.disk.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    h.disk.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var r = layer.getBoundingClientRect();
+      h.x = e.clientX - r.left - dx;
+      h.y = e.clientY - r.top - dy;
+      clamp(h);
+      place(h);
+    });
+    h.disk.addEventListener('pointerup', function () { dragging = false; });
+    h.disk.addEventListener('pointercancel', function () { dragging = false; });
+    h.disk.addEventListener('dblclick', function () { removeHole(h); });
+  }
+
+  function addHole() {
+    var n = holes.length % 5;
+    var ring = document.createElement('div');
+    var disk = document.createElement('div');
+    ring.className = 'ring';
+    disk.className = 'hole';
+    ring.appendChild(disk);
+    layer.appendChild(ring);
+
+    var h = {
+      x: layer.clientWidth / 2 + n * 50,
+      y: layer.clientHeight / 2 + n * 50,
+      ring: ring,
+      disk: disk
+    };
+    holes.push(h);
+    makeDraggable(h);
+    place(h);
+    updateCount();
+  }
+
+  function clearHoles() {
+    holes.forEach(function (h) { h.ring.remove(); });
+    holes = [];
+    updateCount();
+  }
+
+  radiusIn.addEventListener('input', function () {
+    radius = +radiusIn.value;
+    document.getElementById('radius-val').textContent = radius + 'px';
+    holes.forEach(place);
+  });
+  gapIn.addEventListener('input', function () {
+    gap = +gapIn.value;
+    document.getElementById('gap-val').textContent = gap + 'px';
+    holes.forEach(place);
+  });
+  document.getElementById('add-hole').addEventListener('click', addHole);
+  document.getElementById('clear-holes').addEventListener('click', clearHoles);
+  window.addEventListener('resize', function () {
+    holes.forEach(function (h) { clamp(h); place(h); });
+    relayout();
+  });
+
+  relayout();
+  function refont() { widthCache = {}; fit.key = ''; relayout(); }
+  if (document.fonts) {
+    document.fonts.load('1em ' + getComputedStyle(textEl).fontFamily).then(refont, refont);
+    document.fonts.ready.then(refont);
+  }
+})();
+</script>
+
+</body>
+</html>
